@@ -1,6 +1,7 @@
-import { getInstrument } from "../data/instrumentPresets.js";
+import { getInstrument, requireInstrument } from "../data/instrumentPresets.js";
 import { synthesize } from "./instruments.js";
-import { clamp } from "../utils/music.js";
+import { previewNotes } from "../utils/instrumentMusic.js";
+import { voiceDuration } from "./envelopes.js";
 import { gestureBeatSeconds } from "../utils/gestureMapping.js";
 export class AudioEngine {
   constructor() {
@@ -63,6 +64,7 @@ export class AudioEngine {
   }
   sound(event, when = this.ctx?.currentTime, duration = event.duration) {
     if (!this.enabled) return false;
+    const preset = requireInstrument(event.instrument);
     // Bound live polyphony even during rapid input.
     if (this.voices.size >= 24) this.release(this.voices.values().next().value);
     const pan = this.ctx.createStereoPanner();
@@ -71,7 +73,7 @@ export class AudioEngine {
     const voice = synthesize(
       this.ctx,
       pan,
-      getInstrument(event.instrument),
+      preset,
       event,
       when,
       duration,
@@ -131,7 +133,7 @@ export class AudioEngine {
       const voiceLength =
         event.instrument === "tabla"
           ? 0.8 + (event.roll ? (duration * 2) / 3 : 0)
-          : clamp(duration * preset.synthesis.decay, 0.18, 4) + tail + 0.1;
+          : voiceDuration(preset, duration) + tail + 0.1;
       end = Math.max(end, offset + voiceLength + 0.02);
       offset += Math.max(0.18, duration);
     }
@@ -156,21 +158,22 @@ export class AudioEngine {
       playback.onDone();
     }
   }
-  preview(id) {
+  preview(id, scaleId) {
+    requireInstrument(id);
     if (!this.enabled)
       throw new Error("Enable Audio before playing a preview.");
     this.stop();
-    [0, 4, 7].forEach((n, i) =>
+    previewNotes(id, scaleId).forEach((pitch, i) =>
       this.sound(
         {
           instrument: id,
-          pitch: 60 + n,
-          duration: 0.65,
+          pitch,
+          duration: id === "bansuri" ? 1.0 : 0.75,
           intensity: 0.65,
           pan: 0,
           voice: ["bayan", "dayan", "rim"][i],
         },
-        this.ctx.currentTime + i * 0.24,
+        this.ctx.currentTime + i * (id === "bansuri" ? 1.05 : 0.4),
       ),
     );
   }

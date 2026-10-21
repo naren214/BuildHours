@@ -79,6 +79,39 @@ document.querySelector("#run").onclick = async () => {
     await pause();
     assert(scale.value === "minor", "Scale did not change");
     report("Scale selector updates without clearing recorded gestures");
+    button("Electric Guitar").click();
+    await pause();
+    assert(
+      text().includes("00 GESTURES"),
+      "Guitar inherited another instrument's strokes",
+    );
+    emit("pointerdown", 0.5, 0.5);
+    emit("pointerup", 0.5, 0.5);
+    await pause();
+    button("Bansuri").click();
+    await pause();
+    assert(text().includes("00 GESTURES"), "Bansuri contains Guitar strokes");
+    assert(
+      doc.querySelector(".note-display").textContent.includes("—"),
+      "Previous instrument's note remains visible",
+    );
+    emit("pointerdown", 0.5, 0.5);
+    emit("pointerup", 0.5, 0.5);
+    await pause();
+    button("Clear").click();
+    await pause();
+    button("Electric Guitar").click();
+    await pause();
+    assert(text().includes("01 GESTURES"), "Clearing Bansuri cleared Guitar");
+    button("Sitar").click();
+    await pause();
+    assert(
+      text().includes("02 GESTURES"),
+      "Switching instruments lost Sitar's strokes",
+    );
+    report(
+      "Bansuri and Guitar have isolated stroke banks; switching restores notes and Clear affects only the selected voice",
+    );
     button("Tabla").click();
     await pause();
     assert(

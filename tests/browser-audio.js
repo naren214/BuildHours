@@ -1,3 +1,4 @@
+import { verifyInstrumentSignals } from "./audioSignalChecks.js";
 import { synthesize } from "../src/audio/instruments.js";
 import { instruments } from "../src/data/instrumentPresets.js";
 import { AudioEngine } from "../src/audio/AudioEngine.js";
@@ -34,6 +35,8 @@ document.querySelector("#run").onclick = async () => {
     await engine.enable();
     assert(engine.enabled, "Closed context cannot recover");
     report("Real AudioContext recovers after the browser closes it");
+    for (const message of await verifyInstrumentSignals(OfflineAudioContext))
+      report(message);
     for (const preset of instruments) {
       const context = new OfflineAudioContext(1, 44100 * 2, 44100);
       const master = context.createGain();

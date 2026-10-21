@@ -35,7 +35,7 @@ const paths = [
     text: "A scale is a set of semitone offsets from a root note. A small change can open a completely different world.",
     code: "myScale: {\n  name: 'My bright little scale',\n  notes: [0, 2, 5, 7, 9]\n}",
     extra:
-      "Try fewer notes, a different root in gestureMapping.js, or a new rhythm. Scale options appear automatically.",
+      "Try fewer notes, a different tuning.root in instrumentPresets.js, or a new rhythm. Scale options appear automatically.",
   },
 ];
 export default function ExtendPage() {

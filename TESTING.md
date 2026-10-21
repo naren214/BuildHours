@@ -1,3 +1,25 @@
+# Instrument identity and tuning repair — 21 October 2026
+
+- Fixed three separate sources of confusion: Studio playback mixed previously drawn instruments, the header test sound was always Piano, and Bansuri used the same rapidly decaying envelope family as strings.
+- Each instrument now has an isolated stroke bank, a configured workshop pitch register, and previews derived from its selected scale. Scale is reflected in the Studio URL so the header test and Studio test agree. Invalid audio instrument IDs fail explicitly instead of sounding like Sitar.
+- Bansuri uses a sustained sine-dominant tone, subtle harmonics, quiet breath noise, and delayed gentle vibrato. Guitar uses tuned string partials with progressively shorter upper-harmonic decays and conservative overdrive. Large plucked pitch offsets were removed/reduced. Tabla settles onto its configured low/high drum pitches after the brief attack.
+- `npm test`: **16/16 passing**. Includes per-instrument registers/scales, preview dispatch, stroke isolation, unknown-ID rejection, and the prior lifecycle/mapping checks.
+- Native Web Audio offline rendering (temporary `node-web-audio-api` installation outside this project): **12/12 full-engine preview/gesture signal paths passed**, with finite output and clean tails.
+- Quantitative timbre/tuning checks in `tests/audioSignalChecks.js`: all five melodic presets rendered at A4 within **3 cents** of 440 Hz (Sitar +0.04, Bansuri −0.23, Piano 0.00, Guitar −0.10, Synth −2.86 cents). The Bansuri middle-note/early-note RMS ratio is **1.24**, compared with Guitar **0.05**: sustained breath versus a decaying pluck. These measurements establish pitch and envelope differences, not subjective acoustic authenticity.
+- Production build passes.
+- Browser fixtures now include a Bansuri/Guitar bank-isolation check and the shared six quantitative audio checks. The current native browser connection still exposes Chrome's toolbar without page content, so the updated UI fixtures and real-device timbre comparison remain manual checks.
+
+## Regression checklist for this repair
+
+- [ ] In Guitar, draw a stroke. Switch to Bansuri: count is zero and the Guitar stroke/note is absent.
+- [ ] Draw in Bansuri and play: hear only Bansuri. Switch back to Guitar: its stroke returns.
+- [ ] Clear Bansuri, then return to Guitar: Guitar's saved stroke remains.
+- [ ] In Bansuri, compare the header Test sound, Studio Test sound, and new strokes: all use Bansuri. Change the scale and verify both test buttons follow it.
+- [ ] Compare Bansuri and Guitar previews: a held airy flute versus a plucked string with faster harmonic decay.
+- [ ] Run the browser audio fixture: five pitch checks and the envelope comparison should pass in addition to lifecycle/output checks.
+
+---
+
 # Audio repair verification — 21 October 2026
 
 A regression test reproduced two failures: re-enabling a disposed engine and re-enabling a context closed by the browser both threw “Cannot resume a closed AudioContext.” The engine now rebuilds closed output graphs, clears disposed references, and updates UI status through audio state events. Enable Audio plays a confirmation phrase; the Studio also has an explicit Test sound control. Stop now resets playback UI when a preview interrupts a sequence.

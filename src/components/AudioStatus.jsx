@@ -1,5 +1,11 @@
+import { useLocation } from "react-router-dom";
+import { getInstrument } from "../data/instrumentPresets";
 import { useAudioEngine } from "../hooks/useAudioEngine";
 export default function AudioStatus() {
+  const location = useLocation();
+  const selected = getInstrument(
+    new URLSearchParams(location.search).get("instrument"),
+  );
   const { engine, enabled, enable, reportError } = useAudioEngine();
   return (
     <button
@@ -7,7 +13,12 @@ export default function AudioStatus() {
       onClick={async () => {
         if (await enable()) {
           try {
-            engine.preview("piano");
+            engine.preview(
+              location.pathname === "/studio" ? selected.id : "sitar",
+              location.pathname === "/studio"
+                ? new URLSearchParams(location.search).get("scale")
+                : undefined,
+            );
           } catch (err) {
             reportError(err);
           }

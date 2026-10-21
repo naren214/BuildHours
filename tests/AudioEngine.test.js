@@ -105,3 +105,29 @@ test("Stop releases the playback UI even when a test sound interrupts a sequence
   assert.deepEqual(highlights, [null]);
   assert.equal(engine.playback, null);
 });
+
+test("Bansuri preview dispatches only Bansuri notes in the requested scale", () => {
+  const engine = new AudioEngine();
+  engine.ctx = { state: "running", currentTime: 0 };
+  const events = [];
+  engine.sound = (event) => events.push(event);
+  engine.preview("bansuri", "minorPentatonic");
+  assert.equal(events.length, 3);
+  assert.ok(events.every((e) => e.instrument === "bansuri"));
+  assert.ok(
+    events.every(
+      (e) =>
+        e.pitch >= 60 &&
+        e.pitch <= 84 &&
+        [0, 3, 5, 7, 10].includes((e.pitch - 60) % 12),
+    ),
+  );
+});
+test("an unknown sound never silently falls back to another instrument", () => {
+  const engine = new AudioEngine();
+  engine.ctx = { state: "running", currentTime: 0 };
+  assert.throws(
+    () => engine.sound({ instrument: "misspelled" }),
+    /Unknown instrument/,
+  );
+});

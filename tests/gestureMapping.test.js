@@ -37,7 +37,7 @@ test("taps are valid, outputs are bounded, and empty gestures are rejected", () 
   assert.ok(edge.duration <= 3);
   assert.ok(edge.intensity <= 0.95);
   assert.ok(edge.pan <= 0.75);
-  assert.ok(edge.pitch < 84);
+  assert.ok(edge.pitch <= instruments.find((i) => i.id === "synth").tuning.max);
 });
 test("Tabla has three distinct regions and swipe rolls", () => {
   for (const [x, voice] of [

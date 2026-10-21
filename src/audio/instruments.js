@@ -1,5 +1,5 @@
-import { clamp, midiToFrequency } from "../utils/music.js";
-import { envelope } from "./envelopes.js";
+import { midiToFrequency } from "../utils/music.js";
+import { envelope, sustainedEnvelope, voiceDuration } from "./envelopes.js";
 // Each voice returns its nodes so the engine can cancel and disconnect it.
 export function synthesize(
   ctx,
@@ -10,6 +10,8 @@ export function synthesize(
   duration,
   noiseBuffer,
 ) {
+  if (event.instrument && event.instrument !== preset.id)
+    throw new Error("Instrument routing mismatch");
   const nodes = [],
     sources = [];
   const track = (node) => {
@@ -25,7 +27,11 @@ export function synthesize(
   output.connect(destination);
   const freq = midiToFrequency(event.pitch);
   const s = preset.synthesis;
-  duration = clamp(duration * s.decay, 0.18, 4);
+  if (
+    !["drum", "breath", "keys", "synth", "guitar", "plucked"].includes(s.type)
+  )
+    throw new Error(`Unknown synthesis type: ${s.type}`);
+  duration = voiceDuration(preset, duration);
   const tone = (
     type,
     frequency,
@@ -33,6 +39,7 @@ export function synthesize(
     bend = 0,
     end = duration,
     target = output,
+    sustain = false,
   ) => {
     const osc = source(ctx.createOscillator()),
       gain = track(ctx.createGain());
@@ -40,7 +47,13 @@ export function synthesize(
     osc.frequency.setValueAtTime(frequency * (1 + bend), when);
     if (bend)
       osc.frequency.exponentialRampToValueAtTime(frequency, when + 0.07);
-    envelope(gain.gain, when, end, s.attack, weight * event.intensity);
+    (sustain ? sustainedEnvelope : envelope)(
+      gain.gain,
+      when,
+      end,
+      s.attack,
+      weight * event.intensity,
+    );
     osc.connect(gain).connect(target);
     osc.start(when);
     osc.stop(when + end + 0.05);
@@ -54,7 +67,13 @@ export function synthesize(
     buffer.loop = true;
     filter.type = type;
     filter.frequency.value = frequency;
-    envelope(gain.gain, when, end, 0.006, weight * event.intensity);
+    (s.type === "breath" ? sustainedEnvelope : envelope)(
+      gain.gain,
+      when,
+      end,
+      s.type === "breath" ? s.attack : 0.006,
+      weight * event.intensity,
+    );
     buffer.connect(filter).connect(gain).connect(output);
     buffer.start(when);
     buffer.stop(when + end + 0.05);
@@ -64,9 +83,11 @@ export function synthesize(
       rim = event.voice === "rim";
     const osc = source(ctx.createOscillator()),
       gain = track(ctx.createGain());
-    const f = low ? 110 : rim ? 580 : 280;
-    osc.frequency.setValueAtTime(f * 2.2, when);
-    osc.frequency.exponentialRampToValueAtTime(f * 0.65, when + 0.13);
+    const f = midiToFrequency(
+      preset.tuning.drums[event.voice] || preset.tuning.drums.dayan,
+    );
+    osc.frequency.setValueAtTime(f * 1.5, when);
+    osc.frequency.exponentialRampToValueAtTime(f, when + 0.035);
     envelope(gain.gain, when, low ? 0.6 : 0.22, 0.003, 0.7 * event.intensity);
     osc.connect(gain).connect(output);
     osc.start(when);
@@ -74,18 +95,23 @@ export function synthesize(
     noise(rim ? 0.65 : 0.18, rim ? 0.09 : 0.12, rim ? 4500 : 1800);
     duration = 0.7;
   } else if (s.type === "breath") {
-    const osc = tone("sine", freq, 0.7),
+    const osc = tone("sine", freq, 0.65, 0, duration, output, true),
       lfo = source(ctx.createOscillator()),
       depth = track(ctx.createGain());
-    tone("triangle", freq, 0.12);
-    noise(0.12, duration, 1400);
+    tone("sine", freq * 2, 0.065, 0, duration, output, true);
+    tone("sine", freq * 3, 0.018, 0, duration, output, true);
+    noise(0.035, duration, Math.min(freq * 3, 4500));
     lfo.frequency.value = 5;
-    depth.gain.value = freq * 0.004;
+    depth.gain.setValueAtTime(0, when);
+    depth.gain.linearRampToValueAtTime(
+      freq * 0.002,
+      when + Math.min(0.35, duration * 0.6),
+    );
     lfo.connect(depth).connect(osc.frequency);
     lfo.start(when);
     lfo.stop(when + duration + 0.05);
   } else if (s.type === "keys") {
-    [1, 2, 3, 4.01].forEach((partial, i) =>
+    [1, 2, 3, 4].forEach((partial, i) =>
       tone(
         "sine",
         freq * partial,
@@ -98,7 +124,10 @@ export function synthesize(
     const filter = track(ctx.createBiquadFilter());
     filter.type = "lowpass";
     filter.frequency.setValueAtTime(600 + event.intensity * 6500, when);
-    filter.frequency.exponentialRampToValueAtTime(300, when + duration);
+    filter.frequency.exponentialRampToValueAtTime(
+      Math.max(300, freq * 1.5),
+      when + duration,
+    );
     filter.Q.value = s.type === "synth" ? 2 : 0.6;
     if (s.type === "guitar") {
       const shaper = track(ctx.createWaveShaper());
@@ -107,17 +136,27 @@ export function synthesize(
         (_, i) => Math.tanh((i / 127.5 - 1) * 1.6) / 1.6,
       );
       filter.connect(shaper).connect(output);
-      tone("triangle", freq, 0.55, 0.025, duration, filter);
-      tone("sawtooth", freq * 2, 0.1, 0.025, duration * 0.7, filter);
+      // Tuned string partials: higher harmonics damp sooner after the pick.
+      [1, 2, 3, 4, 5, 6].forEach((n, i) =>
+        tone(
+          "sine",
+          freq * n,
+          [0.65, 0.25, 0.15, 0.08, 0.05, 0.03][i],
+          0,
+          duration / (1 + i * 0.32),
+          filter,
+        ),
+      );
+      noise(0.055, 0.035, 2400, "highpass");
     } else {
       filter.connect(output);
       tone("sawtooth", freq * 0.997, 0.28, 0, duration, filter);
       tone("triangle", freq * 1.003, 0.4, 0, duration, filter);
     }
   } else {
-    tone("triangle", freq, 0.48, 0.035);
-    [2, 3, 4, 6].forEach((n, i) =>
-      tone("sine", freq * n, 0.18 / (i + 1), 0.02, duration / (1 + i * 0.15)),
+    tone("sine", freq, 0.55, 0.006);
+    [2, 3, 4, 5, 6, 8].forEach((n, i) =>
+      tone("sine", freq * n, 0.25 / (i + 1), 0.003, duration / (1 + i * 0.15)),
     );
   }
   // A short, non-feedback echo gives plucked voices a conservative resonant tail.

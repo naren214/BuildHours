@@ -4,6 +4,7 @@ import { getInstrument } from "../data/instrumentPresets";
 import { scales } from "../data/scales";
 import { useAudioEngine } from "../hooks/useAudioEngine";
 import { mapGesture } from "../utils/gestureMapping";
+import { instrumentGestures } from "../utils/instrumentMusic";
 import { noteName } from "../utils/music";
 import InstrumentSelector from "../components/InstrumentSelector";
 import ScaleSelector from "../components/ScaleSelector";
@@ -14,14 +15,16 @@ import ReactiveVisualizer from "../components/ReactiveVisualizer";
 export default function StudioPage() {
   const [search, setSearch] = useSearchParams();
   const instrument = getInstrument(search.get("instrument"));
-  const [scale, setScale] = useState(instrument.scale),
-    [tempo, setTempo] = useState(96),
-    [gestures, setGestures] = useState([]),
+  const scale = scales[search.get("scale")]
+    ? search.get("scale")
+    : instrument.scale;
+  const [tempo, setTempo] = useState(96),
+    [allGestures, setGestures] = useState([]),
     [playing, setPlaying] = useState(false),
     [activeId, setActiveId] = useState(null),
-    [last, setLast] = useState(null),
     [dismissed, setDismissed] = useState(false),
     [message, setMessage] = useState("");
+  const gestures = instrumentGestures(allGestures, instrument.id);
   const { engine, enabled, enable, reportError } = useAudioEngine();
   const previousId = useRef(instrument.id);
   const stop = () => {
@@ -31,7 +34,10 @@ export default function StudioPage() {
   };
   useEffect(() => {
     if (previousId.current !== instrument.id) {
-      setScale(instrument.scale);
+      stop();
+      setMessage(
+        `${instrument.name} selected. Playback uses only its own gestures.`,
+      );
       previousId.current = instrument.id;
     }
   }, [instrument]);
@@ -53,7 +59,6 @@ export default function StudioPage() {
     const event = mapGesture(points, instrument.id, scale);
     if (!event) return;
     setGestures((old) => [...old, event]);
-    setLast(event);
     if (engine.enabled) {
       try {
         engine.sound(event);
@@ -83,12 +88,11 @@ export default function StudioPage() {
   };
   const clear = () => {
     stop();
-    setGestures([]);
-    setLast(null);
+    setGestures((old) => old.filter((g) => g.instrument !== instrument.id));
     setDismissed(false);
     setMessage("Canvas cleared. A fresh beginning.");
   };
-  const active = gestures.find((g) => g.id === activeId) || last;
+  const active = gestures.find((g) => g.id === activeId) || gestures.at(-1);
   return (
     <div className="page studio-page" style={{ "--accent": instrument.accent }}>
       <div className="page-heading studio-heading">
@@ -118,7 +122,7 @@ export default function StudioPage() {
           onClick={async () => {
             if (await enable()) {
               try {
-                engine.preview(instrument.id);
+                engine.preview(instrument.id, scale);
                 setMessage(
                   "Playing three test notes. If silent, check the browser tab’s mute setting and your output device.",
                 );
@@ -183,7 +187,12 @@ export default function StudioPage() {
         </section>
         <aside className="studio-settings">
           <p className="eyebrow">MAKE IT YOURS</p>
-          <ScaleSelector value={scale} onChange={setScale} />
+          <ScaleSelector
+            value={scale}
+            onChange={(value) =>
+              setSearch({ instrument: instrument.id, scale: value })
+            }
+          />
           {scale === "indianPentatonic" && (
             <p className="scale-note">{scales[scale].description}</p>
           )}
@@ -207,8 +216,11 @@ export default function StudioPage() {
             </dl>
           </div>
           <p className="settings-note">
-            New settings shape your next gesture. Every stroke keeps its own
-            voice and scale.
+            {instrument.id === "tabla"
+              ? "Fixed low, high, and rim voices. "
+              : `${noteName(instrument.tuning.min)}–${noteName(instrument.tuning.max)} · A4 = 440 Hz. `}
+            Each instrument has its own strokes. New scale settings shape your
+            next gesture.
           </p>
         </aside>
       </div>

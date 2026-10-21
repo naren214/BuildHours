@@ -2,6 +2,7 @@
 export const instruments = [
   {
     id: "sitar",
+    tuning: { root: 48, min: 48, max: 72 },
     name: "Sitar",
     category: "melodic",
     character: "Pluck a little sunlight.",
@@ -16,6 +17,7 @@ export const instruments = [
   },
   {
     id: "bansuri",
+    tuning: { root: 60, min: 60, max: 84 },
     name: "Bansuri",
     category: "melodic",
     character: "Give the air a melody.",
@@ -29,6 +31,12 @@ export const instruments = [
   },
   {
     id: "tabla",
+    tuning: {
+      root: 48,
+      min: 48,
+      max: 72,
+      drums: { bayan: 48, dayan: 60, rim: 72 },
+    },
     name: "Tabla",
     category: "rhythmic",
     character: "Find your own heartbeat.",
@@ -42,6 +50,7 @@ export const instruments = [
   },
   {
     id: "piano",
+    tuning: { root: 48, min: 48, max: 84 },
     name: "Piano",
     category: "melodic",
     character: "A familiar kind of magic.",
@@ -55,10 +64,12 @@ export const instruments = [
   },
   {
     id: "guitar",
+    tuning: { root: 48, min: 40, max: 76 },
     name: "Electric Guitar",
     category: "melodic",
     character: "Put a little edge on it.",
-    description: "A warm pluck with a bending attack and soft overdrive.",
+    description:
+      "A tuned string pluck with decaying harmonics and soft overdrive.",
     gesture: "Flick for a bright attack. Sweep for a longer ring.",
     accent: "#ff8d7c",
     secondary: "#678dff",
@@ -68,6 +79,7 @@ export const instruments = [
   },
   {
     id: "synth",
+    tuning: { root: 48, min: 36, max: 84 },
     name: "Synthesizer",
     category: "electronic",
     character: "Make something otherworldly.",
@@ -82,3 +94,9 @@ export const instruments = [
 ];
 export const getInstrument = (id) =>
   instruments.find((i) => i.id === id) || instruments[0];
+
+export function requireInstrument(id) {
+  const preset = instruments.find((i) => i.id === id);
+  if (!preset) throw new Error(`Unknown instrument: ${id}`);
+  return preset;
+}
