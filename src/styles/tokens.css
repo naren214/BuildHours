@@ -1,0 +1,18 @@
+:root {
+  --indigo-950: #171238;
+  --indigo-800: #28205d;
+  --ivory: #f7f0e4;
+  --ivory-soft: #fffaf2;
+  --charcoal: #191821;
+  --peacock: #087f7b;
+  --marigold: #f2aa18;
+  --vermilion: #e6533f;
+  --rani-pink: #d64288;
+  --electric-blue: #3878ff;
+  --accent: var(--marigold);
+  --muted: #b2adc7;
+  --line: rgba(247, 240, 228, 0.15);
+  --sans: Inter, "Helvetica Neue", Arial, sans-serif;
+  --serif: Georgia, "Times New Roman", serif;
+  --max: 1400px;
+}

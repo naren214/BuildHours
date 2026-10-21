@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><title>UNHEARD · Interaction verification</title
+  ><style>
+    body {
+      background: #171238;
+      color: #f7f0e4;
+      font: 15px/1.6 system-ui;
+      padding: 24px;
+    }
+    button {
+      font: inherit;
+      padding: 12px 20px;
+    }
+    iframe {
+      width: 100%;
+      height: 640px;
+      border: 1px solid #716984;
+      margin-top: 20px;
+    }
+    li {
+      margin: 8px 0;
+    }
+  </style>
+  <h1>Interaction verification</h1>
+  <p>
+    Tests the actual app inside a same-origin frame. Synthetic mouse/touch
+    Pointer Events exercise gesture handlers; pointer capture is stubbed only
+    for these untrusted events. Real hardware still needs the manual checklist.
+  </p>
+  <button id="run">Run interaction checks</button>
+  <ol id="results"></ol>
+  <iframe title="UNHEARD under test" src="/studio"></iframe>
+  <script type="module" src="./browser-ui.js"></script>
+</html>

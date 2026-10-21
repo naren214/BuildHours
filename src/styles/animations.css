@@ -1,0 +1,99 @@
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+main {
+  animation: enter 0.5s ease both;
+}
+.instrument-card .instrument-motif {
+  transition:
+    transform 0.5s,
+    opacity 0.5s;
+}
+.instrument-card:hover .instrument-motif {
+  transform: scale(1.04);
+  opacity: 1;
+}
+.instrument-card:hover .motif-strings path:nth-child(odd) {
+  animation: string-vibration 0.35s ease-in-out 3 alternate;
+}
+.instrument-card:hover .motif-ribbons {
+  animation: ribbon-flow 2s ease-in-out infinite alternate;
+}
+.instrument-card:hover .motif-rings circle {
+  animation: rhythm-pulse 1.5s ease-out infinite;
+  transform-origin: 43% 50%;
+}
+.instrument-card:hover .motif-bars rect:nth-child(odd) {
+  animation: bar-pulse 0.8s ease-in-out infinite alternate;
+  transform-origin: center;
+}
+.instrument-card:hover .motif-arcs {
+  animation: ribbon-flow 0.65s ease-in-out 3 alternate;
+}
+.instrument-card:hover .motif-geometry {
+  animation: geometry-pulse 1.4s ease-in-out infinite alternate;
+}
+@keyframes string-vibration {
+  to {
+    transform: translateX(2px);
+  }
+}
+@keyframes ribbon-flow {
+  to {
+    transform: translateY(-5px);
+  }
+}
+@keyframes rhythm-pulse {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+    transform: scale(1.05);
+  }
+}
+@keyframes bar-pulse {
+  to {
+    transform: scaleY(0.8);
+    opacity: 0.5;
+  }
+}
+@keyframes geometry-pulse {
+  to {
+    filter: drop-shadow(0 0 7px var(--accent));
+    opacity: 1;
+  }
+}
+.studio-page {
+  transition: --accent 0.3s;
+}
+.is-drawing {
+  box-shadow: inset 0 0 50px color-mix(in srgb, var(--accent) 3%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .hero-art:hover .hero-trackpad {
+    transform: rotate(-16deg) rotateX(27deg) rotateY(-12deg);
+  }
+  .instrument-card:hover {
+    transform: none;
+  }
+  .instrument-card:hover .instrument-motif {
+    transform: none;
+  }
+}
