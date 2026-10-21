@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getInstrument } from "../data/instrumentPresets";
 import { scales } from "../data/scales";
@@ -6,6 +6,16 @@ import { useAudioEngine } from "../hooks/useAudioEngine";
 import { mapGesture } from "../utils/gestureMapping";
 import { instrumentGestures } from "../utils/instrumentMusic";
 import { noteName } from "../utils/music";
+import {
+  canRedo,
+  canUndo,
+  createStudioState,
+  studioReducer,
+} from "../utils/studioState";
+import {
+  loadStudioComposition,
+  saveStudioComposition,
+} from "../utils/studioPersistence";
 import InstrumentSelector from "../components/InstrumentSelector";
 import ScaleSelector from "../components/ScaleSelector";
 import TempoControl from "../components/TempoControl";
@@ -14,19 +24,33 @@ import TrackpadCanvas from "../components/TrackpadCanvas";
 import ReactiveVisualizer from "../components/ReactiveVisualizer";
 export default function StudioPage() {
   const [search, setSearch] = useSearchParams();
+  const [savedComposition] = useState(loadStudioComposition);
   const instrument = getInstrument(search.get("instrument"));
   const scale = scales[search.get("scale")]
     ? search.get("scale")
     : instrument.scale;
-  const [tempo, setTempo] = useState(96),
-    [allGestures, setGestures] = useState([]),
-    [playing, setPlaying] = useState(false),
+  const [studio, dispatch] = useReducer(
+    studioReducer,
+    savedComposition,
+    createStudioState,
+  );
+  const [playing, setPlaying] = useState(false),
     [activeId, setActiveId] = useState(null),
     [dismissed, setDismissed] = useState(false),
-    [message, setMessage] = useState("");
-  const gestures = instrumentGestures(allGestures, instrument.id);
+    [message, setMessage] = useState(() => {
+      if (savedComposition.status === "restored")
+        return "Composition restored from this browser.";
+      if (savedComposition.status === "invalid")
+        return "A saved composition could not be read. Starting fresh.";
+      if (savedComposition.status === "unavailable")
+        return "Browser storage is unavailable. Changes will stay in this Studio session.";
+      return "";
+    });
+  const gestures = instrumentGestures(studio.gestures, instrument.id);
+  const tempo = studio.tempo;
   const { engine, enabled, enable, reportError } = useAudioEngine();
   const previousId = useRef(instrument.id);
+  const storageWarningShown = useRef(savedComposition.status === "unavailable");
   const stop = () => {
     engine.stop();
     setPlaying(false);
@@ -43,6 +67,15 @@ export default function StudioPage() {
   }, [instrument]);
   useEffect(() => () => engine.stop(), [engine]);
   useEffect(() => {
+    if (saveStudioComposition(studio)) return;
+    if (!storageWarningShown.current) {
+      setMessage(
+        "Could not save in this browser. Your work remains available in this Studio session.",
+      );
+      storageWarningShown.current = true;
+    }
+  }, [studio]);
+  useEffect(() => {
     if (!enabled && playing) {
       engine.stop();
       setPlaying(false);
@@ -58,7 +91,7 @@ export default function StudioPage() {
     }
     const event = mapGesture(points, instrument.id, scale);
     if (!event) return;
-    setGestures((old) => [...old, event]);
+    dispatch({ type: "add", gesture: event });
     if (engine.enabled) {
       try {
         engine.sound(event);
@@ -88,9 +121,21 @@ export default function StudioPage() {
   };
   const clear = () => {
     stop();
-    setGestures((old) => old.filter((g) => g.instrument !== instrument.id));
+    dispatch({ type: "clear", instrument: instrument.id });
     setDismissed(false);
     setMessage("Canvas cleared. A fresh beginning.");
+  };
+  const undo = () => {
+    if (!canUndo(studio, instrument.id)) return;
+    stop();
+    dispatch({ type: "undo", instrument: instrument.id });
+    setMessage("Undid the last change.");
+  };
+  const redo = () => {
+    if (!canRedo(studio, instrument.id)) return;
+    stop();
+    dispatch({ type: "redo", instrument: instrument.id });
+    setMessage("Redid the last change.");
   };
   const active = gestures.find((g) => g.id === activeId) || gestures.at(-1);
   return (
@@ -177,6 +222,10 @@ export default function StudioPage() {
               onPlay={play}
               onStop={stop}
               onClear={clear}
+              onUndo={undo}
+              onRedo={redo}
+              canUndo={canUndo(studio, instrument.id)}
+              canRedo={canRedo(studio, instrument.id)}
               hasGestures={!!gestures.length}
               enabled={enabled}
             />
@@ -196,7 +245,10 @@ export default function StudioPage() {
           {scale === "indianPentatonic" && (
             <p className="scale-note">{scales[scale].description}</p>
           )}
-          <TempoControl value={tempo} onChange={setTempo} />
+          <TempoControl
+            value={tempo}
+            onChange={(value) => dispatch({ type: "tempo", tempo: value })}
+          />
           <div className="how-to">
             <span className="eyebrow">A LITTLE DIRECTION</span>
             <p>{instrument.gesture}</p>

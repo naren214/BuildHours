@@ -16,10 +16,10 @@ Open the Local URL printed by Vite, normally `http://localhost:5173`. Click **En
 ```bash
 npm run build     # Production files in dist/
 npm run preview   # Preview that production build
-npm test          # Mapping and musical range tests
+npm test          # Unit, audio lifecycle, mapping, and Studio state checks
 ```
 
-No API keys, accounts, backend, database, remote fonts, recordings, or paid services. After installing the packages, the app works without internet access. Nothing is uploaded. Compositions live only in page memory and reset when leaving the Studio or refreshing.
+No API keys, accounts, backend, database, remote fonts, recordings, or paid services. After installing the packages, the app works without internet access. Nothing is uploaded. The current composition and tempo save automatically in this browser and restore when Studio opens again. Clearing site data removes the local copy; compositions are not shared across browsers or devices.
 
 ## Routes
 
@@ -38,7 +38,7 @@ Technology: React 19, Vite 7, JavaScript, React Router, Canvas 2D, Pointer Event
 2. Select an instrument. Draw with a primary mouse button or trackpad click-and-drag; touch users draw with one finger. A completed stroke plays once and remains visible.
 3. Draw higher for a higher note, longer for a longer sound, faster for more intensity. Synth speed also opens its filter.
 4. For Tabla, tap the left **Bayan / Low**, center **Dayan / High**, or right **Rim / Accent** region. A swipe longer than the threshold creates a three-hit roll.
-5. Press **Play** to hear gestures in drawing order at the chosen tempo. The active stroke glows. **Stop** cancels playback; **Clear** removes the selected instrument’s strokes and restores the first-use guidance.
+5. Press **Play** to hear gestures in drawing order at the chosen tempo. The active stroke glows. **Stop** cancels playback; **Undo** and **Redo** edit up to 64 recent changes for the selected instrument; **Clear** removes that instrument’s strokes and restores the first-use guidance.
 
 Keyboard: all links and controls work with Tab. Focus the gesture canvas and press Enter or Space to add a center note. The scale select and tempo slider support native keyboard interaction. Drawing remains pointer-based; keyboard entry is intentionally a simple center-note alternative.
 
@@ -120,12 +120,11 @@ Recent Chrome or Edge is recommended for the workshop. Modern Firefox and Safari
 - Playback uses browser timers and may drift or pause in background tabs. Keep the Studio foregrounded.
 - Presets are intentionally lightweight approximations. The final timbre depends on browser/device output.
 - Offline buffer checks validate signal generation and bounds, not subjective sound quality or safe physical speaker loudness.
-- No persistence, undo, export, recording, or deployment is included.
+- No named compositions, file export, recording, or deployment is included. Undo history resets when Studio is closed or refreshed; the composition and tempo remain saved locally.
 - Chrome desktop has been exercised; real touch hardware, Edge, Safari, and Firefox still need the checklist.
 
 ## Next Build
 
-- Undo/redo and local composition save/load.
 - WAV export or recording without external services.
 - Continuous pitch tracing and expressive horizontal filter control.
 - Beat quantization and a Web Audio lookahead scheduler.
