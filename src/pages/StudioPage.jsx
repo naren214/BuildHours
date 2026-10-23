@@ -26,7 +26,7 @@ export default function StudioPage() {
   const [search, setSearch] = useSearchParams();
   const [savedComposition] = useState(loadStudioComposition);
   const instrument = getInstrument(search.get("instrument"));
-  const scale = scales[search.get("scale")]
+  const scale = Object.hasOwn(scales, search.get("scale"))
     ? search.get("scale")
     : instrument.scale;
   const [studio, dispatch] = useReducer(

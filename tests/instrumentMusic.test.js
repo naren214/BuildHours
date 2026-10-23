@@ -65,3 +65,15 @@ test("reference tuning is A4=440Hz and Tabla previews use its fixed drum notes",
     Object.values(requireInstrument("tabla").tuning.drums),
   );
 });
+
+test("inherited object keys use the instrument preset scale fallback", () => {
+  for (const invalidScale of ["constructor", "__proto__", "toString"]) {
+    assert.ok(instrumentNotes("sitar", invalidScale).length > 0, invalidScale);
+  }
+});
+
+test("inherited object keys use the instrument preset scale fallback", () => {
+  for (const invalidScale of ["constructor", "__proto__", "toString"]) {
+    assert.ok(instrumentNotes("sitar", invalidScale).length > 0, invalidScale);
+  }
+});

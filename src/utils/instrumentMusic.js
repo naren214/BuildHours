@@ -5,7 +5,9 @@ import { clamp } from "./music.js";
 export function instrumentNotes(id, scaleId) {
   const preset = getInstrument(id);
   const { root = 48, min = 48, max = 72 } = preset.tuning || {};
-  const scale = scales[scaleId] || scales[preset.scale];
+  const scale = Object.hasOwn(scales, scaleId)
+    ? scales[scaleId]
+    : scales[preset.scale];
   const notes = [];
   for (let pitch = min; pitch <= max; pitch++) {
     if (scale.notes.includes((((pitch - root) % 12) + 12) % 12))
